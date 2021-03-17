@@ -6,8 +6,17 @@ import os
 import numpy as np
 
 # File format of input
-FORMAT = 'NC'
 
+# Input of radiance file can be OPUS or NC
+RAD_INP = 'NC'
+
+# Input of atmosphere can be RASO or ERA5
+ATM_INP = 'RASO'
+
+# Ipnut of cloud information can be NC or ASCII
+CLD_INP = 'NC'
+
+# If input of radiance is OPUS, position must be specified here
 LAT = 78.92
 LON = 11.92
 
@@ -17,19 +26,19 @@ RESULTS = os.getcwd() + '/RESULTS'
 
 # Path to the binary of LBLRTM
 PATH_TO_LBLRTM = "/home/phi.richter/radiative_transfer/lblrtm"
-PATH_TO_RUN_LBLRTM = "/mnt/beegfs/user/phi.richter/run_LBLRTM"
+PATH_TO_RUN_LBLRTM = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/run_LBLRTM"
 
 # Path to the binary of LBLDIS
 PATH_TO_LBLDIS = "/home/phi.richter/radiative_transfer/lbldis"
 
 # Path to the source of TCWret
-PATH_TO_TCWRET = "/mnt/beegfs/user/phi.richter/Total_Cloud_Water_retrieval_conv_change_2"
+PATH_TO_TCWRET = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/retrieval"
 
 # Path to ftsreader
-PATH_TO_FTSREADER = "/mnt/beegfs/user/phi.richter/ftsreader"
+PATH_TO_FTSREADER = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/ftsreader"
 
 # Microwindows used by TCWret
-WINDOWS = "/mnt/beegfs/user/phi.richter/Total_Cloud_Water_retrieval/microwindows/high_snr_polarstern"
+WINDOWS = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/retrieval/microwindows/high_snr_polarstern"
 
 
 # Resolution of the spectrum in cm-1. Calculate convolution according to the resolution
@@ -54,28 +63,30 @@ STDDEV = -1.0
 # Use scattering in LBLDIS?
 SCATTER = True
 
-
-# Disturb the temperature, absolute value (K)
+# Disturb the cloud temperature, absolute value (K)
 DISTURB_CTEMPERATURE = 0.0
 
 # Disturb the humidity relative to the value from the radiosonde
 SCALE_HUMIDITY = 1.0
 
-#Add an offset to the spectrum (mW/[sr * m2 * cm-1])
+# Add an offset to the spectrum (mW/[sr * m2 * cm-1])
 OFFSET = -0.0
 
-KURUCZ = "/mnt/beegfs/user/phi.richter/solar/solar.kurucz.rad.1cm-1binned.full_disk.asc"
+# Kurucz solar information
+KURUCZ = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/solar/solar.kurucz.rad.1cm-1binned.full_disk.asc"
 
-DATABASES = ['/mnt/beegfs/user/phi.richter/ssp_database/ssp_db.mie_wat.gamma_sigma_0p100', \
-'/mnt/beegfs/user/phi.richter/ssp_database/ssp_db.Droxtal.gamma.0p100']
+# Single scattering parameter dataases and temperature intervals. If cloud temperature 
+# is outside the interval, the retrieval of the corresponding parameter will be deactivated
+DATABASES = ['/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/ssp_database/ssp_db.mie_wat.gamma_sigma_0p100', \
+'/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/ssp_database/ssp_db.Droxtal.gamma.0p100']
 TEMP_DATABASES  = [[233.15, 500.15], [0.0, 273.15]]
 
 # Optical depths
 TAU = [0.25, 0.25]
 
-# Effective Droplet Radii
-REFF = [np.log(5.), np.log(20.)]
-LOG = True
+# Effective Radii. Can either be absolute or logarithmic
+REFF = [5., 20.]
+LOG = False
 
 MCP = np.array(TAU[:]+REFF[:])
 
@@ -85,11 +96,11 @@ MCP_APRIORI = MCP[:]
 # The variance of the a priori and its weighting. This will be converted to the S_A matrix
 
 VARIANCE_APRIORI_TAU = [0.04, 0.04]
-VARIANCE_APRIORI_REFF = [np.log(100.0)**(-2), np.log(100.0)**(-2)]
+VARIANCE_APRIORI_REFF = [100.0**(-2), 100.0**(-2)]
 
 VARIANCE_APRIORI = np.array(VARIANCE_APRIORI_TAU[:] + VARIANCE_APRIORI_REFF[:])
 
-# Manual choise of the cloud thresholds (in m). If TCWret should use the cloud thresholds from the file, these have to be set to None
+# Manual choise of the cloud thresholds (in m). If TCWret should use the cloud thresholds from the file, these have to be set to None, otherwise CLOUD_LAYERS must be a list (not np.array)
 CLOUD_LAYERS = None
 
 # If multiple layers available, only use cloud base height or cloud top height
@@ -105,7 +116,8 @@ MAX_ITER = 30
 # Stop iteration if change of cost function is less than CONVERGENCE
 CONVERGENCE = 1e-3
 
-path_tg = "/mnt/beegfs/user/phi.richter/Total_Cloud_Water_retrieval/trace_gases/"
+# Trace gas profiles in ppmv
+path_tg = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/retrieval/trace_gases/"
 CO2_FILE = path_tg + "co2.csv"
 CO_FILE = path_tg + "co.csv"
 CH4_FILE = path_tg + "ch4.csv"
@@ -115,18 +127,20 @@ O2_FILE = path_tg + "o2.csv"
 HEIGHT_FILE = path_tg + "z.csv"
 
 # Maximum allowed effective droplet radius
-MAX_REFF = np.log(100.0)
+MAX_REFF = 100.0
 
 # Minimum allowed effective droplet radius
-MIN_REFF = np.log(1.0)
+MIN_REFF = 1.0
 
-RECALIBRATE = False
+# If the spectra are calibrated with emissivity = 1, it can be recalibrated
+RECALIBRATE = True
 FILE_EMISS = "/home/phi.richter/Data/PASCAL_SiPCA_FRAM_2017/bb_emissivity.csv"
 FILE_TEMP = "/home/phi.richter/Data/PASCAL_SiPCA_FRAM_2017/temperature_lab.csv"
 
+# Altitude grid if the input grid has too many layers
+ALTITUDE_GRID = "/home/phi.richter/retrieval_recode/Total_Cloud_Water_retrieval/retrieval/grids/red_grid"
 
-ALTITUDE_GRID = "/mnt/beegfs/user/phi.richter/Total_Cloud_Water_retrieval/grids/red_grid"
-
+# Keys for ERA5 quantities. Time unit is either hours since 1900-01-01 (then TIME_UNIT=[1900,3600]) or seconds since 1970-01-01 (them TIME_UNIT = [1970, 1])
 KEY_RH = "r"
 KEY_TEMP= "t"
 KEY_HEIGHT = "z"
