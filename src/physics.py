@@ -11,8 +11,11 @@ import scipy.interpolate
 
 import inp
 
-sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
+sys.path.append(inp.PATH_TO_RUN_LBLDIS)
 import run_lbldis as rL
+
+sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
+import tcwret_io
 
 ATMOSPHERIC_GRID = dict()
 CLOUD_GRID = None
@@ -121,11 +124,11 @@ def calculate_cloud_emissivity():
     emis_f = scipy.interpolate.interp1d(wn_emis, sf_emis, fill_value="extrapolate")
 
     below_cloud = np.where(ATMOSPHERIC_GRID['altitude(km)']*1e3 < CLOUD_GRID[0])[0][0]
-    func = read_clear_sky_optical_depths(rL.LBLDIR, below_cloud)
+    func = read_clear_sky_optical_depths(tcwret_io.LBLDIR, below_cloud)
     transmissivity = func(WAVENUMBER_FTIR)
     t_surf = ATMOSPHERIC_GRID['temperature(K)'][0]
-    rad_semiss_075 = rL.run_lbldis(np.array([MCP[-1]]), False, t_surf-5)[-1]
-    rad_semiss_025 = rL.run_lbldis(np.array([MCP[-1]]), False, t_surf+5)[-1]
+    rad_semiss_075 = rL.run_lbldis(np.array([MCP[-1]]), lblrtm=False, t_surf=t_surf-5, ssp=inp.DATABASES, wn=[MICROWINDOWS[0][0], MICROWINDOWS[-1][-1]], atm_grid=ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)[0]
+    rad_semiss_025 = rL.run_lbldis(np.array([MCP[-1]]), lblrtm=False, t_surf=t_surf+5, ssp=inp.DATABASES, wn=[MICROWINDOWS[0][0], MICROWINDOWS[-1][-1]], atm_grid=ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)[0]
     reflectivity = (rad_semiss_075 - rad_semiss_025)/\
         (transmissivity * (planck(WAVENUMBER_FTIR, t_surf-5) - planck(WAVENUMBER_FTIR, t_surf+5)))
 

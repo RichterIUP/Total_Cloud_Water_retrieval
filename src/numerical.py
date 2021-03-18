@@ -14,7 +14,7 @@ import scipy.signal   as sig
 #Self-defined modules
 import inp
 sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
-#import aux2 as aux
+
 import physics
 
 STEPSIZE = 1e-3
@@ -24,44 +24,6 @@ VARIANCE_RA = 0.0
 CHI2 = []
 
 T_MATRIX = []
-
-def conv(wavenumber, radiance, atmospheric_param):
-    '''
-    Perfom convolution with sinc
-    
-    Parameter
-    ---------
-    wavenumber : np.array
-        Wavenumber
-        
-    radiance : np.array
-        Radiance
-        
-    atmospheric_param : list
-        Microphysical Cloud Parameters
-    
-    Returns
-    -------
-    np.array
-        Convoluted radiance
-    '''
-    nu_out_center = wavenumber - wavenumber[0]
-    nu_out = wavenumber
-    opd = 0.9/inp.RESOLUTION
-    if len(atmospheric_param) <= 1:
-        radiance = sig.convolve(radiance.flatten(), opd*np.sinc(opd*nu_out_center), \
-                                mode="full")[np.arange(0, len(nu_out), 1)] / \
-                                np.sum(opd*np.sinc(opd*nu_out_center))
-    else:
-        for i, dummy in enumerate(atmospheric_param, start=0):#range(len(inp.MCP)):
-            radiance[:, i] = sig.convolve(radiance[:, i], opd*np.sinc(opd*nu_out_center), \
-                                           mode="full")[np.arange(0, len(nu_out), 1)] / \
-                                           np.sum(opd*np.sinc(opd*nu_out_center))
-    radiance = np.array(radiance)
-   
-    return radiance
-
-####################################################################################
 
 def reduced_chi_square_test():
     '''

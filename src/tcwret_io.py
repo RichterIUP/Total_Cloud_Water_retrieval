@@ -29,6 +29,7 @@ LBL_WORK = ''
 FNAME = ''
 LAT = 0.0
 LON = 0.0
+LBLDIR = ''
 
 
 def read_era5_argmin(fname, lat, lon, tim, key, time_unit):
@@ -321,12 +322,32 @@ def create_atmosphere(atmospheric_file):
             relative_humidity[i] = np.interp(0, time_atm[idx], \
                                               np.array([humidity_atm[0][i], humidity_atm[1][i]]))
         height *= 1e3
+        
+    co2 = np.loadtxt(inp.CO2_FILE, delimiter=",")
+    n2o = np.loadtxt(inp.N2O_FILE, delimiter=",")
+    o3  = np.loadtxt(inp.O3_FILE, delimiter=",")
+    ch4 = np.loadtxt(inp.CH4_FILE, delimiter=",")
+    co  = np.loadtxt(inp.CO_FILE, delimiter=",")
+    o2  = np.loadtxt(inp.O2_FILE, delimiter=",")
+    height_tg = np.loadtxt(inp.HEIGHT_FILE, delimiter=",")
+    co2 = np.interp(height*1e-3, height_tg, co2)
+    n2o = np.interp(height*1e-3, height_tg, n2o)
+    o3 = np.interp(height*1e-3, height_tg, o3)
+    ch4 = np.interp(height*1e-3, height_tg, ch4)
+    co = np.interp(height*1e-3, height_tg, co)
+    o2 = np.interp(height*1e-3, height_tg, o2)
 
     physics.ATMOSPHERIC_GRID = {'pressure(hPa)' : plev, \
                         'altitude(m)': height, \
                         'altitude(km)': height*1e-3, \
                         'temperature(K)': temperature, \
-                        'humidity(%)': relative_humidity}
+                        'humidity(%)': relative_humidity, \
+                        'co2(ppmv)': co2, \
+                        'n2o(ppmv)': n2o, \
+                        'o3(ppmv)': o3, \
+                        'ch4(ppmv)': ch4, \
+                        'co(ppmv)': co, \
+                        'o2(ppmv)': o2}
 
 def read_cloud_position(cloud_height_file):
     '''

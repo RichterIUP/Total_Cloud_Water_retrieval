@@ -12,6 +12,8 @@ sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
 import numerical
 import physics
 import tcwret_io
+
+sys.path.append(inp.PATH_TO_RUN_LBLDIS)
 import run_lbldis as rL
 
 
@@ -187,7 +189,7 @@ def set_up_retrieval():
     # Calculate the clear sky spectrum
     clear_sky_param = inp.MCP[:]
     clear_sky_param[0:int(inp.MCP.size//2)] = 0.
-    physics.RADIANCE_CLEARSKY = rL.run_lbldis(np.array([clear_sky_param]), lblrtm=True)[-1]
+    physics.RADIANCE_CLEARSKY, tcwret_io.LBLDIR = rL.run_lbldis(np.array([clear_sky_param]), lblrtm=True, ssp=inp.DATABASES, wn=[physics.MICROWINDOWS[0][0], physics.MICROWINDOWS[-1][-1]], atm_grid=physics.ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=physics.SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=physics.CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)
     physics.RADIANCE_LBLDIS = [[] for ii in range(len(inp.MCP)+1)]
 
     # Calculate the S_y matrix
@@ -205,14 +207,14 @@ def run_lbldis_and_derivatives():
     for i in range(1, inp.MCP.size//2+1):
         mcp[i, i-1] += numerical.STEPSIZE
 
-    radiance = rL.run_lbldis(np.array(mcp), lblrtm=False)[1]
+    radiance = rL.run_lbldis(np.array(mcp), lblrtm=False, ssp=inp.DATABASES, wn=[physics.MICROWINDOWS[0][0], physics.MICROWINDOWS[-1][-1]], atm_grid=physics.ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=physics.SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=physics.CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)[0]
     for i in range(inp.MCP.size//2+1):
         physics.RADIANCE_LBLDIS[i].append(radiance[:, i].flatten())
     delta = np.zeros(inp.MCP.size)
     for i in range(inp.MCP.size//2+1, inp.MCP.size+1):
         delta[i-1] = numerical.STEPSIZE
         mcp = [physics.MCP[-1] + delta]
-        radiance = rL.run_lbldis(np.array(mcp), lblrtm=False)[1]
+        radiance = rL.run_lbldis(np.array(mcp), lblrtm=False, ssp=inp.DATABASES, wn=[physics.MICROWINDOWS[0][0], physics.MICROWINDOWS[-1][-1]], atm_grid=physics.ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=physics.SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=physics.CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)[0]
         try:
             physics.RADIANCE_LBLDIS[i].append(radiance[:, 0].flatten())
         except IndexError:
