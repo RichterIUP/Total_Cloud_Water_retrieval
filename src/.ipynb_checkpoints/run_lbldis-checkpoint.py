@@ -10,18 +10,18 @@ import subprocess
 import sys
 import numpy             as np
 import netCDF4           as nc
-import inp
+#import inp
 
-sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
-import physics
-import numerical
+#sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
+#import physics
+#import numerical
 
-sys.path.append(inp.PATH_TO_RUN_LBLRTM)
-import run_LBLRTM
+#sys.path.append(inp.PATH_TO_RUN_LBLRTM)
+#import run_LBLRTM
 
-LBLDIR = ''
+#LBLDIR = ''
 
-def write_lbldis_input(atmospheric_param, t_surf):
+def write_lbldis_input(atmospheric_param, t_surf, ssp, path_wdir, path_windows, sza, cloud_grid, scatter, kurucz, sfc_em, log_re, lbldir):
     '''
     Write input file for LBLDIS
     
@@ -33,50 +33,82 @@ def write_lbldis_input(atmospheric_param, t_surf):
     t_surf : float
         Surface temperature. If negative, surface temperature equals temperature of 
         lowermost atmospheric level
+        
+    ssp : list
+        Names of single-scattering databases
+        
+    path_wdir : str
+        Path to output of TCWret
+        
+    path_windows : str
+        Filename of microwindows
+        
+    sza : float
+        Solar Zenith Angle
+        
+    cloud_grid : list
+        Layers of cloud
+        
+    scatter : bool
+        Use scatter in LBLDIS
+        
+    kurucz : str
+        Name of Kurucz database
+        
+    sfc_em : list
+        Surface emissivity
+        
+    log_re : bool
+        Use logarithmic r_eff
+        
+    lbldir : str
+        Path to lblrtm output
+        
     '''
-    if inp.SCATTER:
+    
+    if scatter:
         sign = 1
     else:
         sign = -1
-    with open("{}/lbldis.parm".format(inp.PATH), "w") as file_:
+    with open("{}/lbldis.parm".format(path_wdir), "w") as file_:
         file_.write("LBLDIS parameter file\n")
         file_.write("16		Number of streams\n")
-        file_.write("{:04.1f} 30. 1.0	Solar ".format(physics.SOLAR_ZENITH_ANGLE))
+        file_.write("{:04.1f} 30. 1.0	Solar ".format(sza))
         file_.write("zenith angle (deg), relative azimuth (deg), solar distance (a.u.)\n")
         file_.write(" 180           Zenith angle (degrees): 0 -> ")
         file_.write("upwelling, 180 -> downwelling\n")
-        file_.write("-1 0 0 {}\n".format(inp.WINDOWS))
+        file_.write("-1 0 0 {}\n".format(path_windows))
         file_.write("{}               ".format(np.int(len(atmospheric_param)*sign)))
         file_.write("Cloud parameter option flag: ")
         file_.write("0: reff and numdens, >=1:  reff and tau\n")
-        file_.write("{}".format(len(inp.DATABASES) * len(physics.CLOUD_GRID)))
+        file_.write("{}".format(len(ssp) * len(cloud_grid)))
         file_.write("               Number of cloud layers\n")
-        for loop_liq_layer, dummy in enumerate(physics.CLOUD_GRID, start=0):#range(n_layer):
+        for loop_liq_layer, dummy in enumerate(cloud_grid, start=0):
             #ii = 0
-            alt = physics.CLOUD_GRID[loop_liq_layer]*1e-3
+            alt = cloud_grid[loop_liq_layer]*1e-3
             
-            for i, dummy in enumerate(inp.DATABASES, start=0):#range(len(inp.DATABASES)):
+            for i, dummy in enumerate(ssp, start=0):
                 tau = atmospheric_param[:, i]
-                if inp.LOG:
-                    file_.write("{} {:5.3f} {:10.8f} -1".format(i, alt, np.exp(atmospheric_param[0, inp.MCP.size//2+i])))  
+                if log_re:
+                    file_.write("{} {:5.3f} {:10.8f} -1".format(i, alt, np.exp(atmospheric_param[0, len(atmospheric_param[0])//2+i])))  
                 else:
-                    file_.write("{} {:5.3f} {:10.8f} -1".format(i, alt, atmospheric_param[0, inp.MCP.size//2+i]))
+                    file_.write("{} {:5.3f} {:10.8f} -1".format(i, alt, atmospheric_param[0, len(atmospheric_param[0])//2+i]))
                 for tau_lay in tau:
-                    file_.write(" {:10.8f}".format(tau_lay/len(physics.CLOUD_GRID)))
+                    file_.write(" {:10.8f}".format(tau_lay/len(cloud_grid)))
                 file_.write("\n")
-        file_.write("{}\n".format(LBLDIR))
-        file_.write("{}\n".format(inp.KURUCZ))
-        num_db = len(inp.DATABASES)
+        file_.write("{}\n".format(lbldir))
+        file_.write("{}\n".format(kurucz))
+        num_db = len(ssp)
         file_.write("{}       Number of scattering property databases\n".format(num_db))
-        for database in inp.DATABASES:
+        for database in ssp:
             file_.write(database + "\n")
         file_.write("{}	Surface temperature (specifying a negative".format(t_surf))
         file_.write("value takes the value from profile)\n")
-        file_.write("{}	Number of surface spectral emissivity lines (wnum, emis)\n".format(len(inp.EMISSIVITY)))
-        for eps in inp.EMISSIVITY:
+        file_.write("{}	Number of surface spectral emissivity lines (wnum, emis)\n".format(len(sfc_em)))
+        for eps in sfc_em:
             file_.write("{} {}\n".format(eps[0], eps[1]))
 
-def run_lbldis(atmospheric_param, lblrtm, t_surf=-1):
+def run_lbldis(atmospheric_param, lblrtm, ssp, wn, atm_grid, path_to_run_lblrtm, path_to_lblrtm, path_to_lbldis, path_wdir, path_windows, sza, cloud_grid, scatter, kurucz, sfc_em, log_re, lbldir, t_surf=-1):
     '''
     Set up LBLDIS and run LBLRTM/DISORT
     
@@ -88,76 +120,101 @@ def run_lbldis(atmospheric_param, lblrtm, t_surf=-1):
     lblrtm : bool
         If true, run LBLRTM
         
+    ssp : list
+        Names of single-scattering databases
+        
+    wn : list
+        Spectral limits of calculation
+        
+    atm_grid : dict
+        Atmospheric profile of pressure, altitude, temperature, humidity and trace gases
+        
+    path_to_lblrtm : str
+        Path to binary of lblrtm
+        
+    path_to_run_lblrtm : 
+        Path to source of run_LBLRTM
+        
+    path_to_lbldis : str
+        Path to binary of lbldis
+        
+    path_wdir : str
+        Path to output of TCWret
+        
+    path_windows : str
+        Filename of microwindows
+        
+    sza : float
+        Solar Zenith Angle
+        
+    cloud_grid : list
+        Layers of cloud
+        
+    scatter : bool
+        Use scatter in LBLDIS
+        
+    kurucz : str
+        Name of Kurucz solar database
+        
+    sfc_em : list
+        Surface emissivity
+        
     t_surf : float
         Surface temperature. If negative, surface temperature equals temperature of 
         lowermost atmospheric level
         
+    log_re : bool
+        Use logarithmic r_eff
+        
+    lbldir : str
+        Path to lblrtm output
+        
     Returns
     -------
-    np.array
-        Wavenumber
-        
     np.array
         Radiance
     '''
         
-    global LBLDIR
-    
-    # Increase interval by 50.0 cm-1 at both interval limits
-    wnum1 = physics.MICROWINDOWS[0][0]-50.0
-    wnum2 = physics.MICROWINDOWS[-1][-1]+50.0
-    
-    ##Read trace gases and interpolate to atmospheric grid
-    co2 = np.loadtxt(inp.CO2_FILE, delimiter=",")
-    n2o = np.loadtxt(inp.N2O_FILE, delimiter=",")
-    o3  = np.loadtxt(inp.O3_FILE, delimiter=",")
-    ch4 = np.loadtxt(inp.CH4_FILE, delimiter=",")
-    co  = np.loadtxt(inp.CO_FILE, delimiter=",")
-    o2  = np.loadtxt(inp.O2_FILE, delimiter=",")
-    height = np.loadtxt(inp.HEIGHT_FILE, delimiter=",")
-    co2 = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, co2)
-    n2o = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, n2o)
-    o3 = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, o3)
-    ch4 = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, ch4)
-    co = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, co)
-    o2 = np.interp(physics.ATMOSPHERIC_GRID['altitude(km)'], height, o2)
+    #global LBLDIR
+
 
     # Run LBLRTM
     if lblrtm:
-        LBLDIR = run_LBLRTM.run_LBLRTM(z = physics.ATMOSPHERIC_GRID['altitude(km)'], \
-                                       p = physics.ATMOSPHERIC_GRID['pressure(hPa)'], \
-                                       t = physics.ATMOSPHERIC_GRID['temperature(K)'], \
-                                       q = physics.ATMOSPHERIC_GRID['humidity(%)'], \
+        sys.path.append(path_to_run_lblrtm)
+        import run_LBLRTM
+        lbldir = run_LBLRTM.run_LBLRTM(z = atm_grid['altitude(km)'], \
+                                       p = atm_grid['pressure(hPa)'], \
+                                       t = atm_grid['temperature(K)'], \
+                                       q = atm_grid['humidity(%)'], \
                                        hmd_unit='H', \
-                                       wnum1 = wnum1, \
-                                       wnum2 = wnum2, \
-                                       lbltp5 = '{}/tp5'.format(inp.PATH), \
-                                       lbl_home = inp.PATH_TO_LBLRTM, \
-                                       path = inp.PATH, co2=co2, o3=o3, co=co, ch4=ch4, n2o=n2o, o2=o2)
-    
-            
-    if inp.SCATTER:
-        sign = 1
-    else:
-        sign = -1
+                                       wnum1 = wn[0]-50.0, \
+                                       wnum2 = wn[1]+50.0, \
+                                       lbltp5 = '{}/tp5'.format(path_wdir), \
+                                       lbl_home = path_to_lblrtm, \
+                                       path = path_wdir, \
+                                       co2 = atm_grid['co2(ppmv)'], \
+                                       o3 = atm_grid['o3(ppmv)'], \
+                                       co = atm_grid['co(ppmv)'], \
+                                       ch4 = atm_grid['ch4(ppmv)'], \
+                                       n2o = atm_grid['n2o(ppmv)'], \
+                                       o2 = atm_grid['o2(ppmv)'])
 
     # Write LBLDIS input file
-    write_lbldis_input(atmospheric_param, t_surf)
+    write_lbldis_input(atmospheric_param, t_surf, ssp, path_wdir, path_windows, sza, cloud_grid, scatter, kurucz, sfc_em, log_re, lbldir)
 
     # Run LBLDIS
-    lbldisout_file = '{}/lbldisout'.format(inp.PATH)
-    lbldislog = '{}/lbldislog.txt'.format(inp.PATH)
-    with open("{}/run_disort.sh".format(inp.PATH), "w") as file_:
+    lbldisout_file = '{}/lbldisout'.format(path_wdir)
+    lbldislog = '{}/lbldislog.txt'.format(path_wdir)
+    with open("{}/run_disort.sh".format(path_wdir), "w") as file_:
         file_.write("#!/bin/bash\n")
         exec_lbldis = '({}/lbldis {}/lbldis.parm 0 {}) >& {}\n'
-        file_.write(exec_lbldis.format(inp.PATH_TO_LBLDIS, inp.PATH, \
+        file_.write(exec_lbldis.format(path_to_lbldis, path_wdir, \
                                        lbldisout_file, lbldislog))
-    subprocess.call(["bash", "{}/run_disort.sh".format(inp.PATH)])
+    subprocess.call(["bash", "{}/run_disort.sh".format(path_wdir)])
     
     # Read LBLDIS results and perform convolution
-    with nc.Dataset("{}/lbldisout.cdf".format(inp.PATH)) as disort_out:
-        radiance = np.array(disort_out.variables['radiance'][:])
+    with nc.Dataset("{}/lbldisout.cdf".format(path_wdir)) as disort_out:
         wavenumber = np.array(disort_out.variables['wnum'][:])
-        if inp.CONVOLUTION: radiance = numerical.conv(wavenumber, radiance, atmospheric_param)
+        radiance = numerical.conv(wavenumber, np.array(disort_out.variables['radiance'][:]), atmospheric_param)
 
-    return wavenumber, radiance
+    return radiance, lbldir
