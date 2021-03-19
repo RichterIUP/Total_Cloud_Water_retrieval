@@ -189,6 +189,7 @@ def set_up_retrieval():
     # Calculate the clear sky spectrum
     clear_sky_param = inp.MCP[:]
     clear_sky_param[0:int(inp.MCP.size//2)] = 0.
+
     physics.RADIANCE_CLEARSKY, tcwret_io.LBLDIR = rL.run_lbldis(np.array([clear_sky_param]), lblrtm=True, ssp=inp.DATABASES, wn=[physics.MICROWINDOWS[0][0], physics.MICROWINDOWS[-1][-1]], atm_grid=physics.ATMOSPHERIC_GRID, path_to_run_lblrtm=inp.PATH_TO_RUN_LBLRTM, path_to_lblrtm=inp.PATH_TO_LBLRTM, path_wdir=inp.PATH, path_to_lbldis=inp.PATH_TO_LBLDIS, sza=physics.SOLAR_ZENITH_ANGLE, path_windows=inp.WINDOWS, cloud_grid=physics.CLOUD_GRID, scatter=inp.SCATTER, kurucz=inp.KURUCZ, sfc_em=inp.EMISSIVITY, log_re=inp.LOG, lbldir=tcwret_io.LBLDIR, resolution=inp.RESOLUTION)
     physics.RADIANCE_LBLDIS = [[] for ii in range(len(inp.MCP)+1)]
 
