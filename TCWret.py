@@ -10,7 +10,6 @@ import netCDF4 as nc
 sys.path.append(os.getcwd())
 import inp
 sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
-
 import inversion
 import tcwret_io
 import physics
@@ -127,5 +126,5 @@ if __name__ == '__main__':
     if len(sys.argv) > 4:
         main(sys.argv[1], sys.argv[2], sys.argv[3], sza=float(sys.argv[4]))
     else:
-        for date in [dt.datetime(2017, 6, 11, 14, 13)]:#get_times(sys.argv[1]):
+        for date in get_times(sys.argv[1]):
             main(sys.argv[1], sys.argv[2], sys.argv[3], date_of_spec=date)

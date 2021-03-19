@@ -149,9 +149,9 @@ def read_radiances(spectral_radiance_file, date_of_spec, sza):
             LAT = np.float64(rad_f.variables['lat'][index_of_spec])
             LON = np.float64(rad_f.variables['lon'][index_of_spec])
             physics.SOLAR_ZENITH_ANGLE = np.float64(rad_f.variables['sza'][index_of_spec])
-            physics.WAVENUMBER_FTIR = rad_f.variables['wavenumber'][index_of_spec][:].flatten()
-            physics.RADIANCE_FTIR = rad_f.variables['radiance'][index_of_spec][:].flatten()
-            physics.NOISE_FTIR = rad_f.variables['stdDev'][index_of_spec][:].flatten()
+            physics.WAVENUMBER_FTIR = np.array(rad_f.variables['wavenumber'][index_of_spec][:].flatten())
+            physics.RADIANCE_FTIR = np.array(rad_f.variables['radiance'][index_of_spec][:].flatten())
+            physics.NOISE_FTIR = np.array(rad_f.variables['stdDev'][index_of_spec][:].flatten())
 
             if physics.SOLAR_ZENITH_ANGLE > 90.0:
                 physics.SOLAR_ZENITH_ANGLE = -1
@@ -223,7 +223,8 @@ def create_atmosphere(atmospheric_file):
         humd_f = interp1d(height, relative_humidity, fill_value="extrapolate", kind="cubic")
         temp_f = interp1d(height, temperature, fill_value="extrapolate", kind="cubic")
         plev_f = interp1d(height, plev, fill_value="extrapolate", kind="cubic")
-        height = np.concatenate(([18], height))
+        height = np.concatenate(([18], np.array(height)))
+
         temperature = temp_f(height)
         relative_humidity = humd_f(height)
         plev = plev_f(height)
