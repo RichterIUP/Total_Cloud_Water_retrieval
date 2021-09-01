@@ -7,8 +7,6 @@ import os
 import datetime as dt
 import netCDF4 as nc
 
-import numpy as np
-
 sys.path.append(os.getcwd())
 import inp
 sys.path.append(os.path.join(inp.PATH_TO_TCWRET, "src"))
@@ -72,7 +70,7 @@ def main(spectral_radiance_file, \
 
     # Store initial MCP in a local variable. This prevents overwriting in case of multiple runs
     # in one call of TCWret (if more than one spectrum is in spectral_radiance_file)
-    mcp = inp.MCP[:]
+    mcp = inp.MCP
 
     with open(inp.WINDOWS, "r") as file_:
         m_window = file_.readlines()
@@ -82,15 +80,14 @@ def main(spectral_radiance_file, \
                                         float(m_window[line].split(" ")[1])]
 
     # Load spectrum, atmospheric profile and cloud information
-    try:
+    #try:
+    if True:
         tcwret_io.read_radiances(spectral_radiance_file, date_of_spec, sza)
         tcwret_io.create_atmosphere(atmospheric_profiles)
         tcwret_io.read_cloud_position(cloud_height_file)
-    except IndexError:
-        print("Fatal. Loading input failed")
-        inp.MCP = mcp
-        return
-    
+    #except IndexError:
+    #    print("Fatal. Loading input failed")
+    #    return
     directory = dt.datetime.strftime(dt.datetime.now(), "%m_%d_%H_%M_%S_%f")
     path = inp.PATH[:]
 
@@ -131,10 +128,7 @@ if __name__ == '__main__':
         main(sys.argv[1], sys.argv[2], sys.argv[3], sza=float(sys.argv[4]))
     else:
         for date in get_times(sys.argv[1]):
-            mcp_bck = inp.MCP[:]
-            inp.MCP = np.array([0.25, 0.25, np.log(5), np.log(20)])
-            try:
-                main(sys.argv[1], sys.argv[2], sys.argv[3], date_of_spec=date)
-            except Exception:
-                pass
-            inp.MCP = mcp_bck
+            #try:
+            main(sys.argv[1], sys.argv[2], sys.argv[3], date_of_spec=date)
+            #except Exception:
+            #    pass
